@@ -1,0 +1,65 @@
+package org.jcommon.com.jrouter.noio;
+
+import org.apache.log4j.Logger;
+import org.apache.mina.core.session.IoSession;
+import org.jcommon.com.jrouter.RouterRequest;
+
+public class ConnectionWorkerThread extends Thread implements ConnectionCloseListener{
+	private Logger logger = Logger.getLogger(this.getClass());
+	
+	private static ConnectionCloseListener connectionListener;
+	private String connect_group_id;
+	private IoSession session;
+	
+    public void onConnectionClose() {
+        interrupt();
+    }
+	
+	public ConnectionWorkerThread(ThreadGroup group, Runnable target, String name,
+			int stackSize,String connect_group_id) {
+		// TODO Auto-generated constructor stub
+		super(group, target, name, stackSize);
+		setConnect_group_id(connect_group_id);
+		initSession();
+	}
+
+	private boolean initSession() {
+		// TODO Auto-generated method stub
+		session = NoIOConnector1.instance().getServerSurrogate().getConnection(connect_group_id);
+		if(session!=null){
+			session.setAttribute(NoIOConnector1.connectionListener, connectionListener);
+			logger.info("CM - Plain connection to " + session.getRemoteAddress().toString()+ " successful");
+			return true;
+		}else{
+			logger.error("can't find session");
+            return false;
+		}
+	}
+
+	public void setConnect_group_id(String connect_group_id) {
+		this.connect_group_id = connect_group_id;
+	}
+
+	public String getConnect_group_id() {
+		return connect_group_id;
+	}
+	
+	public boolean isValid() {
+	    return session!=null;
+	}
+	
+	public void notifySystemShutdown() {
+		// TODO Auto-generated method stub
+		session.close(true);
+	}
+	
+	public void deliver(RouterRequest request){
+		if(session!=null)
+			session.write(request);
+	}
+	
+	public void deliver(String string){
+		if(session!=null)
+			session.write(string);
+	}
+}

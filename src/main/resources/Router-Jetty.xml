@@ -1,0 +1,62 @@
+<?xml version="1.0"?>
+<!DOCTYPE Configure PUBLIC "-//Jetty//Configure//EN" "http://www.eclipse.org/jetty/configure.dtd">
+
+<!-- =============================================================== -->
+<!-- Configure SIP Web socket connector for the Cipango Server       -->
+<!-- =============================================================== -->
+<Configure class="org.cipango.server.Server" id="Server">
+  <!-- websocket -->
+  <Get name="connectorManager">
+    <Call name="addConnector">
+       <Arg>
+        <New class="org.jcommon.com.jrouter.websocket.SipWebSocketConnector" id="SipWebSocketConnector">
+          <Arg><Ref id="SelectChannelConnector"/></Arg>
+        </New>
+      </Arg>
+    </Call>
+  </Get>
+
+  <Call name="setAttribute">
+    <Arg>org.jcommon.com.jrouter.websocket.WebsocketServlet</Arg>
+    <Arg> 
+        <New class="org.jcommon.com.jrouter.websocket.WebsocketServlet">
+          <Arg><Ref id="SipWebSocketConnector"/></Arg>
+        </New>
+    </Arg>   
+  </Call>
+
+  <!-- socketIo --> 
+  <Get name="connectorManager">
+    <Call name="addConnector"> 
+       <Arg>
+        <New class="org.jcommon.com.jrouter.socketio.SipSocketIoConnector" id="SipSocketIoConnector">
+          <Arg><Ref id="SelectChannelConnector"/></Arg>
+        </New> 
+      </Arg> 
+    </Call>
+  </Get>
+
+  <Call name="setAttribute">
+    <Arg>org.jcommon.com.jrouter.socketio.SocketIoServlet</Arg>
+    <Arg>
+        <New class="org.jcommon.com.jrouter.socketio.SocketIoServlet">
+          <Arg><Ref id="SipSocketIoConnector"/></Arg>
+        </New>
+    </Arg>
+  </Call>
+
+   <!-- RouterServer -->
+  <Call class="org.jcommon.com.jrouter.RouterServer" name="instance" id="RouterServer" />
+
+  <Ref id="RouterServer">
+       <Call name="addConnector"><Arg><Ref id="SipWebSocketConnector" /></Arg></Call>
+       <Call name="addConnector"><Arg><Ref id="SipSocketIoConnector" /></Arg></Call>
+  </Ref>
+
+  <Call name="setAttribute">
+    <Arg>org.jcommon.com.jrouter.RouterServer</Arg>
+    <Arg>
+         <Ref id="RouterServer" />
+    </Arg>
+  </Call>
+</Configure>

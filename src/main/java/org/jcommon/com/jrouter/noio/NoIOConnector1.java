@@ -1,0 +1,418 @@
+package org.jcommon.com.jrouter.noio;
+
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+
+import org.apache.log4j.Logger;
+import org.apache.mina.core.filterchain.DefaultIoFilterChainBuilder;
+import org.apache.mina.core.service.IoHandlerAdapter;
+import org.apache.mina.core.session.IoSession;
+import org.apache.mina.example.echoserver.ssl.BogusSslContextFactory;
+import org.apache.mina.filter.codec.ProtocolCodecFilter;
+import org.apache.mina.filter.logging.LoggingFilter;
+import org.apache.mina.filter.ssl.SslFilter;
+import org.apache.mina.transport.socket.SocketAcceptor;
+import org.apache.mina.transport.socket.nio.NioSocketAcceptor;
+import org.jcommon.com.jrouter.RouterConnection;
+import org.jcommon.com.jrouter.RouterConnector;
+import org.jcommon.com.jrouter.RouterConnectorListener;
+import org.jcommon.com.jrouter.RouterRequest;
+import org.jcommon.com.jrouter.RouterServer;
+import org.jcommon.com.jrouter.RouterUtils;
+
+public class NoIOConnector1 extends IoHandlerAdapter implements RouterConnector, ConnectListener {
+	private Logger logger = Logger.getLogger(this.getClass());
+	
+	public static final String CONNECT_GROUP_ID = "connect_group_id";
+	public static final String connectionListener = "connectionListener";
+	
+	protected InetAddress _localAddr;
+	protected int         _localPort;
+	
+	public static final String version = "v1.0_20140610";
+	public static final String project = "jcommon IOConnector";
+	
+	public static final int DEFAULT_MULTIPLEX_PORT = 5162;
+	
+	private static NoIOConnector1 instance;
+	private SocketAcceptor socketAcceptor;
+	
+	private ServerSurrogate serverSurrogate;
+	
+	protected Map<String, RouterConnection> _connections = new HashMap<String, RouterConnection>();
+	private List<RouterConnectorListener> listeners = new ArrayList<RouterConnectorListener>();
+
+	private boolean ssl;
+	private boolean logged;
+	
+	public NoIOConnector1(String _localAddr, int _localPort){
+		if(_localAddr == null){
+			try {
+				this._localAddr = InetAddress.getLocalHost();
+	        }
+	        catch (UnknownHostException e) {
+	        	_localAddr = "Unknown";
+	        	try {
+					this._localAddr = InetAddress.getByName(_localAddr);
+				} catch (UnknownHostException e1) {
+					// TODO Auto-generated catch block
+					logger.error("", e1);
+				}
+	        }
+        }else{
+        	try {
+				this._localAddr = InetAddress.getByName(_localAddr);
+			} catch (UnknownHostException e1) {
+				// TODO Auto-generated catch block
+				logger.error("", e1);
+			}
+        }
+		
+		this._localPort = _localPort!=0?_localPort:DEFAULT_MULTIPLEX_PORT;
+		instance = this;
+	}
+	
+	public void doStart() throws Exception 
+    {    		
+    	logger.info(String.format("Started {project:%s, version:%s}", project, version));
+    	serverSurrogate = new ServerSurrogate();
+    	startClientListeners();
+    	RouterServer.instance().addConnector(this);
+    }
+	
+	public void doStop()throws Exception 
+	{
+		logger.info(String.format("Stoped {project:%s, version:%s}", project, version));
+		
+		@SuppressWarnings("unchecked")
+		Map<String, RouterConnection> _copy = (HashMap<String, RouterConnection>) ((HashMap<String, RouterConnection>) _connections).clone();
+		
+		for(RouterConnection conn : _copy.values())conn.doClose(0, "shutdown server");
+		_connections.clear();
+		_copy.clear();
+		onConnectorChange(null);
+		
+		//
+		RouterServer.instance().shutdown();
+	}
+	
+	public static NoIOConnector1 instance(){return instance;}
+	    
+	public void sessionCreated(IoSession session) throws Exception {
+	    // Empty handler
+		logger.info(session);
+    }
+
+    public void sessionClosed(IoSession session) throws Exception {
+        // Empty handler
+    	logger.info(session);
+    }
+    
+    public void exceptionCaught(IoSession session, Throwable cause)
+    throws Exception {
+    	super.exceptionCaught(session, cause);
+    	try
+        {
+            session.close(true);
+            sessionClosed(session);
+        }
+        catch (Exception e) {
+        	logger.warn("Unexpected exception.", cause);
+        }
+	}
+    
+    public void messageReceived(IoSession session, Object message)
+    throws Exception {
+    	logger.info(message);
+    	if (message instanceof RouterRequest) {
+    		RouterRequest request = (RouterRequest) message;
+        	if(request.getMethod()==null){
+        		logger.warn("request format error:"+request.getData());
+        	}else{
+        		logger.info("Method:"+request.getMethod());
+        		requestImpl(session, request);
+        	}
+    	}
+	}
+
+	@Override
+	public RouterConnection addConnection(HttpServletRequest arg0) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public InetAddress getAddr() {
+		// TODO Auto-generated method stub
+		return _localAddr;
+	}
+
+	@Override
+	public int getLocalPort() {
+		// TODO Auto-generated method stub
+		return _localPort;
+	}
+
+	@Override
+	public RouterConnection addConnection(RouterConnection connection) {
+		// TODO Auto-generated method stub
+
+		synchronized (_connections)
+		{
+			if(!_connections.containsKey(RouterUtils.key(connection)))
+				onConnectorChange(connection);
+			_connections.put(RouterUtils.key(connection), connection);
+		}
+		
+		return connection;
+	}
+
+	@Override
+	public void removeConnection(RouterConnection connection) {
+		// TODO Auto-generated method stub
+		synchronized (_connections)
+		{
+			_connections.remove(RouterUtils.key(connection));
+		}
+	}
+	
+	public void addConnectorListener(RouterConnectorListener arg0){
+		synchronized (listeners)
+		{
+			listeners.add(arg0);
+		}
+	}
+	
+	public void removeConnectorListener(RouterConnectorListener arg0){
+		synchronized (listeners)
+		{
+			listeners.remove(arg0);
+		}
+	}
+	
+	protected void onConnectorChange(RouterConnection connection){
+		synchronized (listeners){
+			for(RouterConnectorListener l : listeners){
+				if(connection==null)
+					l.onStop();
+				else
+					l.onOpen(connection);
+			}
+		}
+	}
+
+	@Override
+	public void connectAuth(IoSession session, String connect_group_id, String password) {
+		// TODO Auto-generated method stub
+		
+		if(passwd(password)){
+			connectOpen(session,connect_group_id);
+		}else{
+			session.write("403");
+			session.close(true);
+		}
+	}
+
+	private boolean passwd(String password) {
+		// TODO Auto-generated method stub
+		return true;
+	}
+
+	@Override
+	public void connectOpen(IoSession session, String connect_group_id) {
+		// TODO Auto-generated method stub
+		logger.info(String.format("IO SESSION : %s; connect group id:%s", session,connect_group_id));
+		session.setAttribute(CONNECT_GROUP_ID, connect_group_id);
+		serverSurrogate.addConnection(session);
+	}
+
+	@Override
+	public void connectClose(IoSession session, String connect_group_id) {
+		// TODO Auto-generated method stub
+		ConnectionCloseListener connectionListener =  session.getAttribute(NoIOConnector1.connectionListener)!=null?
+				((ConnectionCloseListener)session.getAttribute(NoIOConnector1.connectionListener)):null;
+		if(connectionListener!=null)
+			connectionListener.onConnectionClose();
+	}
+
+	@Override
+	public void sessionOpen(IoSession session, String stream_id) {
+		// TODO Auto-generated method stub
+		logger.info(String.format("IO SESSION : %s; stream id:%s", session,stream_id));
+		if(_connections.containsKey(stream_id)){
+			((NoIOConnection)_connections.get(stream_id)).OnWebsocketOpen(null);
+		}else{
+			if(stream_id!=null && stream_id.indexOf(":")!=-1){
+				String connect_group_id = session.getAttribute(NoIOConnector1.CONNECT_GROUP_ID)!=null?
+						(String) session.getAttribute(NoIOConnector1.CONNECT_GROUP_ID):null;
+				String host = stream_id.split(":")[0];
+				String port = stream_id.split(":")[1];
+				InetAddress _remoteAddr = null;
+				try {
+					_remoteAddr = InetAddress.getByName(host);
+				} catch (UnknownHostException e) {
+					// TODO Auto-generated catch block
+					logger.error("", e);
+				}
+				NoIOConnection connection = new NoIOConnection(this, connect_group_id, _remoteAddr ,Integer.valueOf(port));
+	            addConnection(connection);  
+				connection.OnWebsocketOpen(null);
+			}
+		}
+	}
+
+	@Override
+	public void sessionClose(IoSession session, String stream_id, String errorMessage) {
+		// TODO Auto-generated method stub
+		logger.info(String.format("IO SESSION : %s; stream id:%s", session,stream_id));
+		if(_connections.containsKey(stream_id)){
+			((NoIOConnection)_connections.get(stream_id)).OnWebsocketClose(null, errorMessage);
+		}else{
+			logger.warn("can't find connection:"+stream_id);
+		}
+	}
+
+	@Override
+	public void sessionRouter(IoSession session, String stream_id, String request) {
+		// TODO Auto-generated method stub
+		logger.info(String.format("IO SESSION : %s; stream id:%s", session,stream_id));
+		if(_connections.containsKey(stream_id)){
+			((NoIOConnection)_connections.get(stream_id)).OnWebsocketReuqest(null, new RouterRequest(request));
+		}else{
+			logger.warn("can't find connection:"+stream_id);
+		}
+	}
+	
+	private void requestImpl(IoSession session, RouterRequest request) {
+		// TODO Auto-generated method stub
+		String method = request.getMethod();
+		Object[] parameters1 = request.getParameters();
+		Object[] parameters  = new Object[parameters1.length+1];
+		parameters[0]        = session;
+		for(int i=0;i<parameters1.length;i++)
+			parameters[i+1] = parameters1[i];
+		
+		
+		Method   _method  = null;
+		for(Method m:this.getClass().getMethods()){
+			if(m.getName().equals(method)){
+				_method = m;
+				break;
+			}
+		}
+
+		if(_method!=null)
+		{
+			try {
+				Class<?>[] types = _method.getParameterTypes();
+				//if(method.equals("extension")){
+				if(types.length==1 && types[0] == Object[].class){
+					_method.invoke(this, new Object[]{parameters});
+				}
+				else
+					_method.invoke(this, parameters);
+			} catch (IllegalArgumentException e) {
+				// TODO Auto-generated catch block
+				logger.error(getRequest(request), e);
+			} catch (IllegalAccessException e) {
+				// TODO Auto-generated catch block
+				logger.error(getRequest(request), e);
+			} catch (InvocationTargetException e) {
+				// TODO Auto-generated catch block
+				logger.error(getRequest(request), e);
+			} catch (Exception e){
+				// TODO Auto-generated catch block
+				logger.error(getRequest(request), e);
+			}
+		}
+		else
+		{
+			logger.info("not find method "+method);
+		}
+	}
+	
+	private String getRequest(RouterRequest request){
+		try {
+			String str = request.toFlexString();
+			return str;
+		} catch (UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+			logger.info("", e);
+		}
+		return null;
+	}
+	
+	private void startClientListeners() {
+		// TODO Auto-generated method stub
+		socketAcceptor = new NioSocketAcceptor();
+		socketAcceptor.getSessionConfig().setReadBufferSize(4096);
+		socketAcceptor.getSessionConfig().setReceiveBufferSize(4096);
+		DefaultIoFilterChainBuilder chain = socketAcceptor.getFilterChain();
+		
+		try {
+			if(ssl)
+				addSSLSupport(chain);
+			if(logged)
+				addLogger(chain);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			logger.error("", e);
+		}
+		chain.addLast("codec", new ProtocolCodecFilter(new LivechatCodecFactory()));
+		
+		// Bind
+		socketAcceptor.setHandler(this);
+		try {
+			socketAcceptor.bind(new InetSocketAddress(_localAddr.getHostAddress(), _localPort));
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			logger.error("", e);
+		}
+
+		logger.info("listening on port "
+				+ socketAcceptor.getLocalAddress().getHostName()
+				+ " : "+socketAcceptor.getLocalAddress().getPort());
+	}
+	
+	private static void addSSLSupport(DefaultIoFilterChainBuilder chain)
+	    throws Exception {
+		SslFilter sslFilter = new SslFilter(BogusSslContextFactory
+		        .getInstance(true));
+		chain.addLast("sslFilter", sslFilter);
+	}
+	
+	private static void addLogger(DefaultIoFilterChainBuilder chain)
+	    throws Exception {
+		chain.addLast("logger", new LoggingFilter());
+		System.out.println("Logging ON");
+	}
+
+	@Override
+	public void connectKeepAlive(IoSession session, String connect_group_id) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	public void setServerSurrogate(ServerSurrogate serverSurrogate) {
+		this.serverSurrogate = serverSurrogate;
+	}
+
+	public ServerSurrogate getServerSurrogate() {
+		return serverSurrogate;
+	}
+
+//	private void addLogger(DefaultIoFilterChainBuilder chain) throws Exception {
+//		chain.addLast("logger", new LoggingFilter());
+//	}
+}

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configure class="org.eclipse.jetty.webapp.WebAppContext">
+  <Get name="Server">
+    <Call name="getAttribute" id="RouterServer_">
+      <Arg>org.jcommon.com.jrouter.RouterServer</Arg>
+    </Call>
+    <Call name="getAttribute" id="SocketIoServlet_">
+      <Arg>org.jcommon.com.jrouter.socketio.SocketIoServlet</Arg>
+    </Call>
+    <Call name="getAttribute" id="WebsocketServlet_">
+      <Arg>org.jcommon.com.jrouter.websocket.WebsocketServlet</Arg>
+    </Call>
+  </Get>
+  
+  <Call class="org.jcommon.com.jrouter.RouterServer" name="setRouterServer">
+      <Arg><Ref id="RouterServer_"></Ref></Arg>
+  </Call>
+  
+  <Call name="addServlet">
+    <Arg>
+		<New class="org.eclipse.jetty.servlet.ServletHolder">
+			<Arg>
+				<Ref id="SocketIoServlet_" />
+ 		    </Arg>
+		</New>
+	</Arg>
+    <Arg>/socket.io/*</Arg>
+  </Call>
+  
+  <Call name="addServlet">
+    <Arg>
+		<New class="org.eclipse.jetty.servlet.ServletHolder">
+			<Arg>
+				<Ref id="WebsocketServlet_" />
+ 		    </Arg>
+			<Call name="setName"><Arg>WsServlet</Arg></Call>
+		</New>
+	</Arg>
+    <Arg>/*</Arg>
+  </Call>
+
+</Configure>
