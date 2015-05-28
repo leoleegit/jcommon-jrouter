@@ -2,7 +2,6 @@ package org.jcommon.com.jrouter.noio;
 
 import org.apache.log4j.Logger;
 import org.apache.mina.core.session.IoSession;
-import org.jcommon.com.jrouter.RouterRequest;
 
 public class ConnectionWorkerThread extends Thread implements ConnectionCloseListener{
 	private Logger logger = Logger.getLogger(this.getClass());
@@ -53,10 +52,10 @@ public class ConnectionWorkerThread extends Thread implements ConnectionCloseLis
 		session.close(true);
 	}
 	
-	public void deliver(RouterRequest request){
-		if(session!=null)
-			session.write(request);
-	}
+//	public void deliver(RouterRequest request){
+//		if(session!=null)
+//			session.write(request);
+//	}
 	
 	public void deliver(String string){
 		if(session!=null)

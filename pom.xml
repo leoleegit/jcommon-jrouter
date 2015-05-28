@@ -5,7 +5,7 @@
   <groupId>jcommon</groupId>
   <artifactId>jcommon-jrouter</artifactId>
   <version>1.0-v20140912</version>
-  <packaging>jar</packaging>
+  <packaging>war</packaging>
 
   <name>jrouter Maven Sipapp</name>
 

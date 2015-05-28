@@ -13,7 +13,7 @@ import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
 import org.jcommon.com.jrouter.AbstractRouterConnector;
 import org.jcommon.com.jrouter.RouterConnection;
-import org.jcommon.com.jrouter.RouterServer;
+import org.jcommon.com.jrouter.utils.DisConnectReason;
 
 public class WebSocketConnector extends AbstractRouterConnector implements LifeCycle{
 
@@ -52,11 +52,10 @@ public class WebSocketConnector extends AbstractRouterConnector implements LifeC
 			@SuppressWarnings("unchecked")
 			Map<String, RouterConnection> _copy = (HashMap<String, RouterConnection>) ((HashMap<String, RouterConnection>) _connections).clone();
 			
-			for(RouterConnection conn : _copy.values())conn.doClose(0, "shutdown");
+			for(RouterConnection conn : _copy.values())conn.doClose(DisConnectReason.SHUTDOWN, "shutdown");
 			_connections.clear();
 			_copy.clear();
 			onConnectorChange(null);
-			RouterServer.instance().shutdown();
 		}
 	};
 	

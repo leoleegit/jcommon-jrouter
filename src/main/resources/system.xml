@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+	<system_object key="2" value="org.jcommon.com.util.share.ShareManager" />	
+	<system_object key="3" value="org.jcommon.com.jrouter.test.JsonPacketFactoryTest" />
+	<!--  system_object key="6" value="org.protelnet.com.ws.websocket.CrossDomain_843" /-->
+	<htmladapter user="admin" password="admin" port="10044" />
+	<!-- rmiadapter name="rmiadapter" CREDENTIALS="ptsws" addr="192.168.2.72" port="10045" /-->
+	<!-- <ShareObject rmi="rmiadapter" name="ShareObject" role="server" CREDENTIALS="ptsws" addr="192.168.2.72" port="10045" /> -->
+</root>

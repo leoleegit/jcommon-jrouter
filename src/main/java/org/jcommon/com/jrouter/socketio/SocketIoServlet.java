@@ -16,7 +16,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 
 import org.jcommon.com.jrouter.RouterConnector;
-import org.jcommon.com.jrouter.RouterServer;
+import org.jcommon.com.jrouter.RrouterManager;
 
 import com.glines.socketio.server.SocketIOInbound;
 import com.glines.socketio.server.SocketIOServlet;
@@ -40,7 +40,7 @@ public class SocketIoServlet extends SocketIOServlet{
 		if(_connector==null){
 			_connector = new SocketIoConnectorStandalone();
 			((SocketIoConnectorStandalone)_connector).startup("localhost", 0);
-			RouterServer.instance().addConnector(_connector);
+			RrouterManager.instance().addConnector(_connector);
 		}
     }
 	

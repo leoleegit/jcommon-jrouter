@@ -14,10 +14,14 @@ package org.jcommon.com.jrouter;
 
 import java.net.InetAddress;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public abstract class AbstractRouterConnector implements RouterConnector {
+import org.jcommon.com.jrouter.utils.RouterUtils;
+import org.jcommon.com.util.system.SystemListener;
+
+public abstract class AbstractRouterConnector implements RouterConnector, SystemListener{
 	
 	public static final int WS_DEFAULT_PORT = 80;
 	public static final int WSS_DEFAULT_PORT = 443;
@@ -27,7 +31,7 @@ public abstract class AbstractRouterConnector implements RouterConnector {
 	
 	protected InetAddress _localAddr;
 	protected int _localPort;
-	protected Map<String, RouterConnection> _connections;
+	protected Map<String, RouterConnection> _connections = new HashMap<String, RouterConnection>();
 	
     private List<RouterConnectorListener> listeners = new ArrayList<RouterConnectorListener>();
     
@@ -69,8 +73,7 @@ public abstract class AbstractRouterConnector implements RouterConnector {
 	@Override
 	public RouterConnection addConnection(RouterConnection connection) {
 		// TODO Auto-generated method stub
-		synchronized (_connections)
-		{
+		synchronized (_connections){
 			if(!_connections.containsKey(RouterUtils.key(connection))){
 				_connections.put(RouterUtils.key(connection), connection);
 				onConnectorChange(connection);
@@ -90,6 +93,26 @@ public abstract class AbstractRouterConnector implements RouterConnector {
 	public int getLocalPort() {
 		// TODO Auto-generated method stub
 		return _localPort;
+	}
+	
+
+	@Override
+	public boolean isSynchronized() {
+		// TODO Auto-generated method stub
+		return false;
+	}
+	
+
+	@Override
+	public void shutdown() {
+		// TODO Auto-generated method stub
+		RrouterManager.instance().removeConnector(this);
+	}
+
+	@Override
+	public void startup() {
+		// TODO Auto-generated method stub
+		RrouterManager.instance().addConnector(this);
 	}
 
 }

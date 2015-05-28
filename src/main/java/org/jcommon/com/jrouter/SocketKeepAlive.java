@@ -13,6 +13,8 @@
 package org.jcommon.com.jrouter;
 
 import org.apache.log4j.Logger;
+import org.jcommon.com.jrouter.utils.DisConnectReason;
+import org.jcommon.com.jrouter.utils.RouterUtils;
 
 public class SocketKeepAlive implements Runnable{
 	private static final Logger LOG = Logger.getLogger(SocketKeepAlive.class);
@@ -53,7 +55,7 @@ public class SocketKeepAlive implements Runnable{
 					long now = System.currentTimeMillis();
 					if(((now - alive_time) > max_idle_time )){
 						LOG.info(RouterUtils.key(_connection)+ " keepalive try connect client");
-						_connection.doClose(0,"keeplive connect client fail");
+						_connection.doClose(DisConnectReason.KEEPALIVEFAIL,"keeplive connect client fail");
 						run = false;
 						break;
 					}

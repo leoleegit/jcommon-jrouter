@@ -8,7 +8,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.jcommon.com.jrouter.noio.ConnectionWorkerThread;
 
 public class ThreadPoolExecutorTester {
 	public static void main(String[] args){
@@ -70,20 +69,22 @@ public class ThreadPoolExecutorTester {
 //		}
 
         public Thread newThread(Runnable r) {
-            // Create new worker thread that will include a connection to the server
-            ConnectionWorkerThread t = new ConnectionWorkerThread(group, r,
-                    "Connection Worker - " + threadNumber.getAndIncrement(), 0,connect_group_id);
-            if (t.isDaemon())
-                t.setDaemon(false);
-            if (t.getPriority() != Thread.NORM_PRIORITY)
-                t.setPriority(Thread.NORM_PRIORITY);
-            // Return null if failed to create worker thread
-//            if (!t.isValid()) { 
-//                return null;
-//            }
-            // Clean up the counter of failed attemps to create new connections
-            failedAttempts.set(0);
-            return t;
+//            // Create new worker thread that will include a connection to the server
+//            ConnectionWorkerThread t = new ConnectionWorkerThread(group, r,
+//                    "Connection Worker - " + threadNumber.getAndIncrement(), 0,connect_group_id);
+//            if (t.isDaemon())
+//                t.setDaemon(false);
+//            if (t.getPriority() != Thread.NORM_PRIORITY)
+//                t.setPriority(Thread.NORM_PRIORITY);
+//            // Return null if failed to create worker thread
+////            if (!t.isValid()) { 
+////                return null;
+////            }
+//            // Clean up the counter of failed attemps to create new connections
+//            failedAttempts.set(0);
+        	
+//            return t;
+        	return new Thread();
         }
     }
 }

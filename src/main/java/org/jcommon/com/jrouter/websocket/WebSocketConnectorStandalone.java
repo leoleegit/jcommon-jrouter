@@ -21,6 +21,7 @@ import javax.servlet.http.HttpServletRequest;
 import org.apache.log4j.Logger;
 import org.jcommon.com.jrouter.AbstractRouterConnector;
 import org.jcommon.com.jrouter.RouterConnection;
+import org.jcommon.com.jrouter.utils.DisConnectReason;
 
 public class WebSocketConnectorStandalone extends AbstractRouterConnector{
 	private static final Logger LOG = Logger.getLogger(WebSocketConnectorStandalone.class.getName());
@@ -40,6 +41,7 @@ public class WebSocketConnectorStandalone extends AbstractRouterConnector{
 		}
 		_connections = new HashMap<String, RouterConnection>();
 		instance     = this;
+		LOG.info(this);
     }
     
     public void shutdown(){
@@ -48,7 +50,7 @@ public class WebSocketConnectorStandalone extends AbstractRouterConnector{
 		@SuppressWarnings("unchecked")
 		Map<String, RouterConnection> _copy = (HashMap<String, RouterConnection>) ((HashMap<String, RouterConnection>) _connections).clone();
 		
-		for(RouterConnection conn : _copy.values())conn.doClose(0, "shutdown server");
+		for(RouterConnection conn : _copy.values())conn.doClose(DisConnectReason.SHUTDOWN, "shutdown");
 		_connections.clear();
 		_copy.clear();
 		onConnectorChange(null);
@@ -56,7 +58,7 @@ public class WebSocketConnectorStandalone extends AbstractRouterConnector{
     
     @Override
     public RouterConnection addConnection(HttpServletRequest request){
-		return new WebSocketConnection(this, request);
+		return addConnection(new WebSocketConnection(this, request));
 	}
 
 }

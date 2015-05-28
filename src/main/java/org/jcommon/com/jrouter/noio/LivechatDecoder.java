@@ -5,7 +5,6 @@ import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.mina.core.session.IoSession;
 import org.apache.mina.filter.codec.ProtocolDecoder;
 import org.apache.mina.filter.codec.ProtocolDecoderOutput;
-import org.jcommon.com.jrouter.RouterRequest;
 
 public class LivechatDecoder implements ProtocolDecoder {
 	private Logger logger = Logger.getLogger(this.getClass());
@@ -21,13 +20,13 @@ public class LivechatDecoder implements ProtocolDecoder {
 		if(message!=null && "".equals(message))
     		return;
     	//logger.info(message);
-    	RouterRequest request = new RouterRequest(message);
-    	if(request.getMethod()==null){
-    		logger.warn("request format error:"+request.getData());
-    	}else{
-    		out.write(request);
-    	}
-    	in.position(in.limit());	
+//    	RouterRequest request = new RouterRequest(message);
+//    	if(request.getMethod()==null){
+//    		logger.warn("request format error:"+request.getData());
+//    	}else{
+//    		out.write(request);
+//    	}
+//    	in.position(in.limit());	
 	}
 
 	@Override

@@ -12,12 +12,15 @@
 // ========================================================================
 package org.jcommon.com.jrouter;
 
+import org.jcommon.com.jrouter.packet.Packet;
+import org.jcommon.com.jrouter.utils.DisConnectReason;
+
 /**
  * @author leoLee
  * 
  */
 public interface RouterConnectionListener {
-	public void OnWebsocketReuqest(RouterConnection connection, RouterRequest request);
-	public void OnWebsocketClose(RouterConnection connection, String arg0);
+	public void OnWebsocketPacket(RouterConnection connection, Packet packet);
+	public void OnWebsocketClose(RouterConnection connection, DisConnectReason reason, String string);
 	public void OnWebsocketOpen(RouterConnection connection);
 }

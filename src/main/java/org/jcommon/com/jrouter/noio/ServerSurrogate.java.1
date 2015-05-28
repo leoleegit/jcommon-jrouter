@@ -14,7 +14,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.log4j.Logger;
 import org.apache.mina.core.session.IoSession;
-import org.jcommon.com.jrouter.RouterRequest;
 
 public class ServerSurrogate {
 	private Logger logger = Logger.getLogger(this.getClass());
@@ -75,22 +74,22 @@ public class ServerSurrogate {
 		return session;
 	}
 	
-	public void deliver(String connect_group_id, final RouterRequest request){
-		if(threadPools.containsKey(connect_group_id)){
-			threadPools.get(connect_group_id).execute(new Runnable(){
-
-				@Override
-				public void run() {
-					// TODO Auto-generated method stub
-					ConnectionWorkerThread workerThread = (ConnectionWorkerThread) Thread.currentThread();
-					workerThread.deliver(request);
-				}
-				
-			});
-		}else{
-			logger.warn("cann't find group connection:"+connect_group_id);
-		}
-	}
+//	public void deliver(String connect_group_id, final RouterRequest request){
+//		if(threadPools.containsKey(connect_group_id)){
+//			threadPools.get(connect_group_id).execute(new Runnable(){
+//
+//				@Override
+//				public void run() {
+//					// TODO Auto-generated method stub
+//					ConnectionWorkerThread workerThread = (ConnectionWorkerThread) Thread.currentThread();
+//					workerThread.deliver(request);
+//				}
+//				
+//			});
+//		}else{
+//			logger.warn("cann't find group connection:"+connect_group_id);
+//		}
+//	}
 	
 	 /**
      * Creates a new thread pool that will not contain any thread. So new connections

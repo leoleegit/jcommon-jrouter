@@ -21,6 +21,7 @@ import javax.servlet.http.HttpServletRequest;
 import org.apache.log4j.Logger;
 import org.jcommon.com.jrouter.AbstractRouterConnector;
 import org.jcommon.com.jrouter.RouterConnection;
+import org.jcommon.com.jrouter.utils.DisConnectReason;
 
 public class SocketIoConnectorStandalone extends AbstractRouterConnector{
 	private static final Logger LOG = Logger.getLogger(SocketIoConnectorStandalone.class.getName());
@@ -32,8 +33,7 @@ public class SocketIoConnectorStandalone extends AbstractRouterConnector{
     
     public static SocketIoConnectorStandalone instance(){return instance;}
     
-    public RouterConnection addConnection(HttpServletRequest request)
-	{
+    public RouterConnection addConnection(HttpServletRequest request){
 		return new SocketIoConnection(this, request);
 	}
 
@@ -56,7 +56,7 @@ public class SocketIoConnectorStandalone extends AbstractRouterConnector{
 		@SuppressWarnings("unchecked")
 		Map<String, RouterConnection> _copy = (HashMap<String, RouterConnection>) ((HashMap<String, RouterConnection>) _connections).clone();
 		
-		for(RouterConnection conn : _copy.values())conn.doClose(0, "shutdown server");
+		for(RouterConnection conn : _copy.values())conn.doClose(DisConnectReason.SHUTDOWN, "shutdown");
 		_connections.clear();
 		_copy.clear();
 		onConnectorChange(null);

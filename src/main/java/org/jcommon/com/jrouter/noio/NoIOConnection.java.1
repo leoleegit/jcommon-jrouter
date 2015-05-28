@@ -11,8 +11,10 @@ import org.jcommon.com.jrouter.RouterConnectionListener;
 import org.jcommon.com.jrouter.RouterConnector;
 import org.jcommon.com.jrouter.RouterRequest;
 import org.jcommon.com.jrouter.RouterServer;
-import org.jcommon.com.jrouter.RouterUtils;
 import org.jcommon.com.jrouter.WebSocketKeepAlive;
+import org.jcommon.com.jrouter.packet.Packet;
+import org.jcommon.com.jrouter.utils.DisConnectReason;
+import org.jcommon.com.jrouter.utils.RouterUtils;
 
 public class NoIOConnection implements RouterConnection, RouterConnectionListener {
 	private Logger logger = Logger.getLogger(this.getClass());
@@ -62,17 +64,17 @@ public class NoIOConnection implements RouterConnection, RouterConnectionListene
 	}
 
 	@Override
-	public void doClose(int i, String string) {
+	public void doClose(DisConnectReason reason,  String string) {
 		// TODO Auto-generated method stub
 		if(serverSurrogate!=null)
 			serverSurrogate.deliver(connect_group_id,new RouterRequest(Task.sessionClose.toString(),new Object[]{stream_id}));
 	}
 
 	@Override
-	public void process(RouterRequest request) throws IOException {
+	public void process(Packet request) throws IOException {
 		// TODO Auto-generated method stub
-		if(serverSurrogate!=null)
-			serverSurrogate.deliver(connect_group_id,new RouterRequest(Task.sessionRouter.toString(),new Object[]{stream_id,request.toFlexString()}));
+//		if(serverSurrogate!=null)
+//			serverSurrogate.deliver(connect_group_id,new RouterRequest(Task.sessionRouter.toString(),new Object[]{stream_id,((RouterRequest)request).toFlexString()}));
 	}
 
 	@Override
@@ -91,22 +93,22 @@ public class NoIOConnection implements RouterConnection, RouterConnectionListene
 
 	public boolean onControl(byte arg0, byte[] arg1, int arg2, int arg3) {
 		// TODO Auto-generated method stub
-		if(keepAliveThread!=null && !keepAliveThread.isRun()){
-			keepAliveThread.initData(arg0, arg1, arg2, arg3);
-			keepAliveThread.setRun(true);
-			RouterServer.pool.execute(keepAliveThread);
-		}
-		if(keepAliveThread!=null)
-			keepAliveThread.updateAliveTime();
-		if(keepAliveThread==null)
-			logger.warn("keepAliveThread is null");
+//		if(keepAliveThread!=null && !keepAliveThread.isRun()){
+//			keepAliveThread.initData(arg0, arg1, arg2, arg3);
+//			keepAliveThread.setRun(true);
+//			RouterServer.pool.execute(keepAliveThread);
+//		}
+//		if(keepAliveThread!=null)
+//			keepAliveThread.updateAliveTime();
+//		if(keepAliveThread==null)
+//			logger.warn("keepAliveThread is null");
 		return false;
 	}
 
 	private void onConnectionChange(RouterRequest request, String arg0){
-		Object[] listeners_  = listeners.toArray();
-		if(RouterServer.pool!=null)
-			RouterServer.pool.execute(new RouterTask(listeners_, request, arg0));
+//		Object[] listeners_  = listeners.toArray();
+//		if(RouterServer.pool!=null)
+//			RouterServer.pool.execute(new RouterTask(listeners_, request, arg0));
 	}
 	
 	class RouterTask implements Runnable
@@ -128,12 +130,12 @@ public class NoIOConnection implements RouterConnection, RouterConnectionListene
     		{
     			for(Object o : listeners_){
     				RouterConnectionListener l = (RouterConnectionListener) o;
-    				if(request!=null)
-    					l.OnWebsocketReuqest(NoIOConnection.this,request);
-    				else if(arg0!=null)
-    					l.OnWebsocketClose(NoIOConnection.this,arg0);
-    				else
-    					l.OnWebsocketOpen(NoIOConnection.this);
+    				//if(request!=null)
+    					//l.OnWebsocketReuqest(NoIOConnection.this,request);
+    				//else if(arg0!=null)
+    					//l.OnWebsocketClose(NoIOConnection.this,arg0);
+    				//else
+    				//	l.OnWebsocketOpen(NoIOConnection.this);
     			}
     		}
     		catch (Exception e)
@@ -143,30 +145,30 @@ public class NoIOConnection implements RouterConnection, RouterConnectionListene
     	}
     }
 	
-	@Override
-	public void OnWebsocketReuqest(RouterConnection connection,
-			RouterRequest request) {
-		// TODO Auto-generated method stub
-		if("setConnectionId".equalsIgnoreCase(request.getMethod())){
-			Object[] args = request.getParameters();
-			String temp   = args!=null && args.length>0 ? (String)args[0]:null;
-			connection_id = temp!=null?temp:connection_id;
-			return;
-		}
-		if("keepLive".equalsIgnoreCase(request.getMethod()))
-			onControl((byte)0x0f,null,0,0);
-		onConnectionChange(request,null);
-	}
-
-	@Override
-	public void OnWebsocketClose(RouterConnection connection, String errorMessage) {
-		// TODO Auto-generated method stub
-		onConnectionChange(null,errorMessage==null?"close connection":errorMessage);
-		_connector.removeConnection(this);
-		if(keepAliveThread!=null)
-			keepAliveThread.setRun(false);
-		keepAliveThread = null;
-	}
+//	@Override
+//	public void OnWebsocketReuqest(RouterConnection connection,
+//			RouterRequest request) {
+//		// TODO Auto-generated method stub
+//		if("setConnectionId".equalsIgnoreCase(request.getMethod())){
+//			Object[] args = request.getParameters();
+//			String temp   = args!=null && args.length>0 ? (String)args[0]:null;
+//			connection_id = temp!=null?temp:connection_id;
+//			return;
+//		}
+//		if("keepLive".equalsIgnoreCase(request.getMethod()))
+//			onControl((byte)0x0f,null,0,0);
+//		onConnectionChange(request,null);
+//	}
+//
+//	@Override
+//	public void OnWebsocketClose(RouterConnection connection, String errorMessage) {
+//		// TODO Auto-generated method stub
+//		onConnectionChange(null,errorMessage==null?"close connection":errorMessage);
+//		_connector.removeConnection(this);
+//		if(keepAliveThread!=null)
+//			keepAliveThread.setRun(false);
+//		keepAliveThread = null;
+//	}
 
 	@Override
 	public void OnWebsocketOpen(RouterConnection connection) {
@@ -206,6 +208,19 @@ public class NoIOConnection implements RouterConnection, RouterConnectionListene
 	public int getLocalPort() {
 		// TODO Auto-generated method stub
 		return 0;
+	}
+
+	@Override
+	public void OnWebsocketPacket(RouterConnection connection, Packet packet) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void OnWebsocketClose(RouterConnection connection,
+			DisConnectReason reason, String string) {
+		// TODO Auto-generated method stub
+		
 	}
 
 }

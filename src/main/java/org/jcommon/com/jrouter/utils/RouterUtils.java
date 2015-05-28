@@ -10,7 +10,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // ========================================================================
-package org.jcommon.com.jrouter;
+package org.jcommon.com.jrouter.utils;
 /**
  * @author leoLee
  * 
@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.log4j.Logger;
+import org.jcommon.com.jrouter.RouterConnection;
 
 
 public class RouterUtils {

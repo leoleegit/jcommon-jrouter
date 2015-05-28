@@ -18,7 +18,7 @@ import org.apache.log4j.Logger;
 import org.apache.mina.core.filterchain.DefaultIoFilterChainBuilder;
 import org.apache.mina.core.service.IoHandlerAdapter;
 import org.apache.mina.core.session.IoSession;
-import org.apache.mina.example.echoserver.ssl.BogusSslContextFactory;
+//import org.apache.mina.example.echoserver.ssl.BogusSslContextFactory;
 import org.apache.mina.filter.codec.ProtocolCodecFilter;
 import org.apache.mina.filter.logging.LoggingFilter;
 import org.apache.mina.filter.ssl.SslFilter;
@@ -29,7 +29,8 @@ import org.jcommon.com.jrouter.RouterConnector;
 import org.jcommon.com.jrouter.RouterConnectorListener;
 import org.jcommon.com.jrouter.RouterRequest;
 import org.jcommon.com.jrouter.RouterServer;
-import org.jcommon.com.jrouter.RouterUtils;
+import org.jcommon.com.jrouter.utils.DisConnectReason;
+import org.jcommon.com.jrouter.utils.RouterUtils;
 
 public class NoIOConnector1 extends IoHandlerAdapter implements RouterConnector, ConnectListener {
 	private Logger logger = Logger.getLogger(this.getClass());
@@ -98,7 +99,7 @@ public class NoIOConnector1 extends IoHandlerAdapter implements RouterConnector,
 		@SuppressWarnings("unchecked")
 		Map<String, RouterConnection> _copy = (HashMap<String, RouterConnection>) ((HashMap<String, RouterConnection>) _connections).clone();
 		
-		for(RouterConnection conn : _copy.values())conn.doClose(0, "shutdown server");
+		for(RouterConnection conn : _copy.values())conn.doClose(DisConnectReason.SHUTDOWN, "shutdown");
 		_connections.clear();
 		_copy.clear();
 		onConnectorChange(null);
@@ -276,22 +277,22 @@ public class NoIOConnector1 extends IoHandlerAdapter implements RouterConnector,
 	public void sessionClose(IoSession session, String stream_id, String errorMessage) {
 		// TODO Auto-generated method stub
 		logger.info(String.format("IO SESSION : %s; stream id:%s", session,stream_id));
-		if(_connections.containsKey(stream_id)){
-			((NoIOConnection)_connections.get(stream_id)).OnWebsocketClose(null, errorMessage);
-		}else{
-			logger.warn("can't find connection:"+stream_id);
-		}
+//		if(_connections.containsKey(stream_id)){
+//			((NoIOConnection)_connections.get(stream_id)).OnWebsocketClose(null, errorMessage);
+//		}else{
+//			logger.warn("can't find connection:"+stream_id);
+//		}
 	}
 
 	@Override
 	public void sessionRouter(IoSession session, String stream_id, String request) {
 		// TODO Auto-generated method stub
 		logger.info(String.format("IO SESSION : %s; stream id:%s", session,stream_id));
-		if(_connections.containsKey(stream_id)){
-			((NoIOConnection)_connections.get(stream_id)).OnWebsocketReuqest(null, new RouterRequest(request));
-		}else{
-			logger.warn("can't find connection:"+stream_id);
-		}
+//		if(_connections.containsKey(stream_id)){
+//			((NoIOConnection)_connections.get(stream_id)).OnWebsocketReuqest(null, new RouterRequest(request));
+//		}else{
+//			logger.warn("can't find connection:"+stream_id);
+//		}
 	}
 	
 	private void requestImpl(IoSession session, RouterRequest request) {
@@ -387,9 +388,9 @@ public class NoIOConnector1 extends IoHandlerAdapter implements RouterConnector,
 	
 	private static void addSSLSupport(DefaultIoFilterChainBuilder chain)
 	    throws Exception {
-		SslFilter sslFilter = new SslFilter(BogusSslContextFactory
-		        .getInstance(true));
-		chain.addLast("sslFilter", sslFilter);
+//		SslFilter sslFilter = new SslFilter(BogusSslContextFactory
+//		        .getInstance(true));
+//		chain.addLast("sslFilter", sslFilter);
 	}
 	
 	private static void addLogger(DefaultIoFilterChainBuilder chain)

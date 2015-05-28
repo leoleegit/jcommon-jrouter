@@ -12,18 +12,39 @@
 // ========================================================================
 package org.jcommon.com.jrouter;
 
+import java.io.IOException;
 import java.net.InetAddress;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.log4j.Logger;
+import org.jcommon.com.jrouter.packet.Packet;
+import org.jcommon.com.jrouter.utils.ConnectionTask;
+import org.jcommon.com.jrouter.utils.DisConnectReason;
+import org.jcommon.com.jrouter.utils.RouterUtils;
+import org.jcommon.com.jrouter.utils.SocketState;
 
 public abstract class AbstractRouterConnection implements RouterConnection {
 	protected static final Logger LOG = Logger.getLogger(AbstractRouterConnection.class);
 	
 	private String connection_id;
-	
-	private List<RouterConnectionListener> listeners = new ArrayList<RouterConnectionListener>();
+	private LinkedList<String> packet_cache = new LinkedList<String>(){
+		private static final long serialVersionUID = 1L;
+		
+		private int fix_size = 10;
+		
+		public boolean add(String e){
+			if(super.size()>fix_size){
+				super.remove(0);
+			}
+			return super.add(e);
+		}
+	};
+	protected List<RouterConnectionListener> listeners = new ArrayList<RouterConnectionListener>();
+	private Map<Object, Object> attributes = new HashMap<Object, Object>();
 	
 	protected RouterConnector _connector;
 	protected InetAddress _localAddr;
@@ -33,39 +54,93 @@ public abstract class AbstractRouterConnection implements RouterConnection {
 	
 	protected SocketKeepAlive _keepalive;
 	
+	protected SocketState state = SocketState.CONNECTED;
+	
 	public AbstractRouterConnection(RouterConnector connector){
 		this._connector = connector;
-		
 		if(connector==null)
 			return;
 		_localPort = _connector.getLocalPort();
 		_localAddr = _connector.getAddr();
 	}
 	
-	public void onRouterRequest(RouterRequest request){
-		if("setConnectionId".equalsIgnoreCase(request.getMethod())){
-			Object[] args = request.getParameters();
-			String temp   = args!=null && args.length>0 ? (String)args[0]:null;
-			connection_id = temp!=null?temp:connection_id;
-			_connector.addConnection(this);
+	public SocketState getState() {
+		return state;
+	}
+
+	public void setState(SocketState state) {
+		this.state = state;
+	}
+
+	public boolean isConnected(){
+		return state == SocketState.CONNECTED;
+	}
+	
+	public boolean isDisconnected(){
+		return state == SocketState.CLOSED;
+	}
+	
+	public void onRouterStr(String str){
+		if(RrouterManager.instance().getPacketFactory()!=null){
+			Packet packet = RrouterManager.instance().getPacketFactory().generatePacket(str);
+			if(packet!=null)
+				onRouterPacket(packet);
+		}else{
+			LOG.error("PacketFactory", new Exception("PacketFactory can be null"));
+		}
+	}
+	
+	public void onClose(DisConnectReason reason, String string){
+		if(isDisconnected())
+			return;
+		setState(SocketState.CLOSED);
+		if(_connector!=null)
+			_connector.removeConnection(this);
+		if(_keepalive!=null)
+			_keepalive.setRun(false);
+		_keepalive = null;
+		
+		RouterTask task = new RouterTask(ConnectionTask.onClose);
+		task.setReason(reason, string);
+		RrouterManager.pool.execute(task);
+		
+		if(packet_cache!=null){
+			packet_cache.clear();
+		}
+		LOG.info(RouterUtils.key(_remoteAddr,_remotePort)+" leave ...");
+	}
+	
+	public void onRouterPacket(Packet packet){
+		if(packet==null){
+			LOG.warn("packet is null");
 			return;
 		}
-		if("keepLive".equalsIgnoreCase(request.getMethod())){
+		if(RrouterManager.instance().getPacketFactory()!=null){
+			try {
+				this.process(RrouterManager.instance().getPacketFactory().generateResPacket(packet,200));
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				LOG.error("", e);
+			}
+		}
+		if(packet.isKeepAlive()){
 			if(_keepalive==null){
 				_keepalive = new SocketKeepAlive(this);
 				_keepalive.setRun(true);
-				RouterServer.pool.execute(_keepalive);
+				RrouterManager.pool.execute(_keepalive);
 			}
 			_keepalive.updateAliveTime();
 			return;
 		}
-		onConnectionChange(request, null);
-	}
-	
-	protected void onConnectionChange(RouterRequest request, String arg0){
-		Object[] listeners_  = listeners.toArray();
-		if(RouterServer.pool!=null)
-			RouterServer.pool.execute(new RouterTask(listeners_, request, arg0));
+		
+		if(packet.getPacketID()!=null){
+			if(packet_cache.contains(packet.getPacketID())){
+				return;
+			}else{
+				packet_cache.add(packet.getPacketID());
+			}
+		}
+		RrouterManager.pool.execute(new RouterTask(packet, ConnectionTask.onPacket));
 	}
 	
 	@Override
@@ -108,38 +183,80 @@ public abstract class AbstractRouterConnection implements RouterConnection {
 		}
 	}
 	
+	public Object getAttribute(String arg0){
+		if(attributes.containsKey(arg0))
+			return attributes.get(arg0);
+		return null;
+	}
+	
+	public void setAttribute(Object arg0, Object arg1){
+		synchronized(attributes){
+			attributes.put(arg0, arg1);
+		}
+	}
+	
+	public void deleteAttribute(Object key){
+		synchronized(attributes){
+			if(!attributes.containsKey(key))
+				attributes.remove(key);
+		}
+	}
+	
 	@Override
 	public List<RouterConnectionListener> getRouterConnectionListeners() {
 		// TODO Auto-generated method stub
 		return listeners;
 	}
 	
-	class RouterTask implements Runnable
+	public class RouterTask implements Runnable
     {
-    	private Object[] listeners_;
-    	private RouterRequest request;
-    	private String arg0;
+    	private Packet packet;
+    	private ConnectionTask task;
+    	private DisConnectReason reason;
+    	private String str;
     	
-    	public RouterTask(Object[] listeners_, RouterRequest request, String arg0)
-    	{
-    		this.listeners_ = listeners_;
-    		this.request    = request;
-    		this.arg0       = arg0;
+    	public RouterTask(ConnectionTask task){
+    		this.task       = task;
+    	}
+    	
+    	public RouterTask(Packet packet, ConnectionTask task){
+    		this.packet     = packet;
+    		this.task       = task;
+    	}
+    	
+    	public RouterTask(ConnectionTask task,DisConnectReason reason, String str){
+    		this.task       = task;
+    		this.reason = reason;
+    		this.str    = str;
+    	}
+    	
+    	public void setReason(DisConnectReason reason, String str){
+    		this.reason = reason;
+    		this.str    = str;
     	}
     	
     	public void run()
     	{
     		try 
     		{
-    			for(Object o : listeners_){
-    				RouterConnectionListener l = (RouterConnectionListener) o;
-    				if(request!=null)
-    					l.OnWebsocketReuqest(AbstractRouterConnection.this,request);
-    				else if(arg0!=null)
-    					l.OnWebsocketClose(AbstractRouterConnection.this,arg0);
-    				else
-    					l.OnWebsocketOpen(AbstractRouterConnection.this);
-    			}
+    			if(task!=null){
+    				for(Object o : listeners){
+        				RouterConnectionListener l = (RouterConnectionListener) o;
+        				switch(task){
+        					case onPacket : 
+        						l.OnWebsocketPacket(AbstractRouterConnection.this, packet);
+        						break;
+        					case onOpen : 
+        						l.OnWebsocketOpen(AbstractRouterConnection.this);
+        						break;
+        					case onClose :
+        						l.OnWebsocketClose(AbstractRouterConnection.this, reason, str);
+        						break;
+    					default:
+    						break;
+        				}
+        			}
+    			}	
     		}
     		catch (Exception e)
     		{

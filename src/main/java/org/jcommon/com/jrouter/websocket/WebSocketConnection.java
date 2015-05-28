@@ -20,11 +20,12 @@ import javax.servlet.http.HttpServletRequest;
 import org.eclipse.jetty.websocket.WebSocket;
 import org.jcommon.com.jrouter.AbstractRouterConnection;
 import org.jcommon.com.jrouter.RouterConnector;
-import org.jcommon.com.jrouter.RouterRequest;
-import org.jcommon.com.jrouter.RouterServer;
-import org.jcommon.com.jrouter.RouterUtils;
+import org.jcommon.com.jrouter.RrouterManager;
 import org.jcommon.com.jrouter.SocketKeepAlive;
-
+import org.jcommon.com.jrouter.packet.Packet;
+import org.jcommon.com.jrouter.utils.ConnectionTask;
+import org.jcommon.com.jrouter.utils.DisConnectReason;
+import org.jcommon.com.jrouter.utils.SocketState;
 public class WebSocketConnection extends AbstractRouterConnection implements WebSocket.OnTextMessage, WebSocket.OnFrame, WebSocket.OnControl{
 
 	protected Connection _connection;
@@ -46,30 +47,31 @@ public class WebSocketConnection extends AbstractRouterConnection implements Web
 	}
 
 	@Override
-	public void doClose(int i, String string) {
+	public void doClose(DisConnectReason reason, String string) {
 		// TODO Auto-generated method stub
-		onClose(i, string);
+		setState(SocketState.CLOSING);
+		super.onClose(reason, string);
+		if(_connection!=null){
+			_connection.disconnect();
+			_connection = null;
+		}
 	}
 
 	@Override
-	public void process(RouterRequest request) throws IOException {
+	public void process(Packet packet) throws IOException {
 		// TODO Auto-generated method stub
-		if(_connection != null)
-			_connection.sendMessage(request.toFlexString());
+		if(_connection != null){
+			//LOG.info(packet);
+			_connection.sendMessage(packet.toString());
+		}
 	}
 
 	@Override
 	public void onClose(int arg0, String arg1) {
 		// TODO Auto-generated method stub
-		if(_connector!=null)
-			_connector.removeConnection(this);
-		if(_keepalive!=null)
-			_keepalive.setRun(false);
-		_keepalive = null;
-		
-		onConnectionChange(null, arg1==null?"close connection":arg1);
-		LOG.info(RouterUtils.key(_remoteAddr,_remotePort)+" leave ...");
-		
+		String str      = arg1==null?"close connection":arg1;
+		super.onClose(DisConnectReason.CLOSED, str);
+		setState(SocketState.CLOSED);
 		if(_connection!=null){
 			_connection.disconnect();
 			_connection = null;
@@ -80,7 +82,8 @@ public class WebSocketConnection extends AbstractRouterConnection implements Web
 	public void onOpen(Connection arg0) {
 		// TODO Auto-generated method stub
 		_connection = arg0;
-		onConnectionChange(null, null);
+		setState(SocketState.CONNECTED);
+		RrouterManager.pool.execute(new RouterTask(ConnectionTask.onOpen));
 	}
 
 	@Override
@@ -88,7 +91,7 @@ public class WebSocketConnection extends AbstractRouterConnection implements Web
 		// TODO Auto-generated method stub
 		if(_keepalive!=null && !_keepalive.isRun()){
 			_keepalive.setRun(true);
-			RouterServer.pool.execute(_keepalive);
+			RrouterManager.pool.execute(_keepalive);
 		}
 		if(_keepalive!=null)
 			_keepalive.updateAliveTime();
@@ -113,8 +116,7 @@ public class WebSocketConnection extends AbstractRouterConnection implements Web
 	@Override
 	public void onMessage(String arg0) {
 		// TODO Auto-generated method stub
-		RouterRequest request = new RouterRequest(arg0);
-		onRouterRequest(request);
+		onRouterStr(arg0);
 	}
 
 }

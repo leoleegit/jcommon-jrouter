@@ -19,15 +19,25 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.util.List;
 
+import org.jcommon.com.jrouter.packet.Packet;
+import org.jcommon.com.jrouter.utils.DisConnectReason;
+import org.jcommon.com.jrouter.utils.SocketState;
+
 public interface RouterConnection {
 	public String getRouterConnectionId();
 	public InetAddress getLocalAddress();
 	public int getLocalPort();
 	public InetAddress getRemoteAddress();
 	public int getRemotePort();
-	public void doClose(int i, String string);
-	public void process(RouterRequest request)throws IOException;
+	public void doClose(DisConnectReason reason, String string);
+	public void process(Packet packet)throws IOException;
 	public void addConnectionListener(RouterConnectionListener listener);
 	public void removeConnectionListener(RouterConnectionListener listener);
 	public List<RouterConnectionListener> getRouterConnectionListeners();
+	public SocketState getState();
+	public boolean isConnected();
+	public boolean isDisconnected();
+	public Object getAttribute(String arg0);
+	public void setAttribute(Object arg0, Object arg1);
+	public void deleteAttribute(Object key);
 }

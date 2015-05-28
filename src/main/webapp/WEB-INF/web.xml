@@ -2,5 +2,29 @@
 <web-app xmlns="http://java.sun.com/xml/ns/javaee" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd"
 	version="2.5">
-
+ <servlet>
+    <description></description>
+    <display-name>WebsocketServlet</display-name>
+    <servlet-name>WebsocketServlet</servlet-name>
+    <servlet-class>org.jcommon.com.jrouter.websocket.WebsocketServlet</servlet-class>
+    <load-on-startup>1</load-on-startup>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>WebsocketServlet</servlet-name>
+    <url-pattern>/ws.socket/*</url-pattern>
+  </servlet-mapping> 
+  <servlet>
+  <description></description>
+    <display-name>SocketIoServlet</display-name>
+    <servlet-name>SocketIoServlet</servlet-name>
+    <servlet-class>org.jcommon.com.jrouter.socketio.SocketIoServlet</servlet-class>
+    <load-on-startup>1</load-on-startup>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>SocketIoServlet</servlet-name>
+    <url-pattern>/io.socket/*</url-pattern>
+  </servlet-mapping> 
+  <listener>
+	  <listener-class>org.jcommon.com.util.system.SystemManager</listener-class>
+  </listener>
 </web-app>

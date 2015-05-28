@@ -19,9 +19,11 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.jcommon.com.jrouter.AbstractRouterConnection;
 import org.jcommon.com.jrouter.RouterConnector;
-import org.jcommon.com.jrouter.RouterRequest;
-import org.jcommon.com.jrouter.RouterUtils;
-import org.jcommon.com.jrouter.SocketKeepAlive;
+import org.jcommon.com.jrouter.RrouterManager;
+import org.jcommon.com.jrouter.packet.Packet;
+import org.jcommon.com.jrouter.utils.ConnectionTask;
+import org.jcommon.com.jrouter.utils.DisConnectReason;
+import org.jcommon.com.jrouter.utils.SocketState;
 
 import com.glines.socketio.common.ConnectionState;
 import com.glines.socketio.common.DisconnectReason;
@@ -49,37 +51,33 @@ public class SocketIoConnection extends AbstractRouterConnection  implements Soc
 	}
 
 	@Override
-	public void doClose(int i, String string) {
+	public void doClose(DisConnectReason reason,  String string) {
 		// TODO Auto-generated method stub
-		onDisconnect(DisconnectReason.CLOSED,string);
+		super.onClose(reason, string);
+		setState(SocketState.CLOSING);
 	}
 
 	@Override
-	public void process(RouterRequest request) throws IOException {
+	public void process(Packet request) throws IOException {
 		// TODO Auto-generated method stub
 		if(_connection != null)
-			_connection.sendMessage(request.toFlexString());
+			_connection.sendMessage(request.toString());
 	}
 
 	@Override
 	public void onConnect(SocketIOOutbound arg0) {
 		// TODO Auto-generated method stub
 		_connection = arg0;
-		_keepalive = new SocketKeepAlive(this);
-		onConnectionChange(null, null);
+		setState(SocketState.CONNECTED);
+		RrouterManager.pool.execute(new RouterTask(ConnectionTask.onOpen));
 	}
 
 	@Override
 	public void onDisconnect(DisconnectReason arg0, String arg1) {
-		// TODO Auto-generated method stub
-		_connector.removeConnection(this);
-		if(_keepalive!=null)
-			_keepalive.setRun(false);
-		_keepalive = null;
-		
-		onConnectionChange(null, arg1==null?"close connection":arg1);
-		
-		LOG.info(RouterUtils.key(_remoteAddr,_remotePort)+" leave ...");
+		// TODO Auto-generated method stub	
+		String str      = arg1==null?"close connection":arg1;
+		super.onClose(DisConnectReason.CLOSED, str);
+		setState(SocketState.CLOSED);
 		if(_connection!=null && _connection.getConnectionState()==ConnectionState.CONNECTED){
 			_connection.disconnect();
 			_connection = null;
@@ -89,7 +87,6 @@ public class SocketIoConnection extends AbstractRouterConnection  implements Soc
 	@Override
 	public void onMessage(int arg0, String arg1) {
 		// TODO Auto-generated method stub
-		RouterRequest request = new RouterRequest(arg1);
-		onRouterRequest(request);
+		onRouterStr(arg1);
 	}
 }
