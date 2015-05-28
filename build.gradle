@@ -1,0 +1,109 @@
+    apply plugin: 'java'
+    apply plugin: 'eclipse'
+	apply plugin: 'maven'
+	apply plugin: 'war'
+	   
+	group   = 'jcommon'
+    version = '1.0-v20150416'
+    
+    ext{
+		artifactId = 'jcommon-jrouter'
+		packaging  = 'war'
+		ftp_url    = 'ftp://192.168.2.49'
+		ftp_user   = 'deploy'
+		ftp_passwd = 'deploy.com'
+		cipango_version = '2.2-SNAPSHOT'
+		jetty_version   = '8.0.4.v20111024'
+		mina_version    = '2.0.4'
+		
+	}
+
+	buildscript {
+	    repositories {
+	        jcenter()
+	    }
+	    dependencies {
+	        classpath (group: 'com.sahlbach.gradle', name: 'gradle-jetty-eclipse-plugin', version: '1.9.+')
+	    }
+	}
+	apply plugin: 'jettyEclipse'
+	
+	configurations {
+	    deployerJars
+	}
+
+    jar {
+	    manifest{
+	    	attributes 'provider':'gradle'
+	    }
+    }
+
+    repositories {   
+    
+       maven {
+			url 'http://192.168.2.49:9090/maven-proxy-webapp/repository'
+	   }
+	   
+	   mavenCentral()
+    }
+
+    dependencies {
+        testCompile 'junit:junit:4.11'
+        deployerJars "org.apache.maven.wagon:wagon-ftp:2.2"
+        compile 'log4j:log4j:1.2.16'
+        compile 'javax.servlet:servlet-api:2.5'
+		compile 'jcommon:jcommon-jutils:1.0-v20150417'
+        compile 'dom4j:dom4j:1.6.1'
+        compile 'com.sun.jdmk:jmxtools:1.2.1'
+        compile 'com.glines.socketio:socketio-core:0.1-SNAPSHOT'
+        compile "org.cipango:cipango-server:${project.cipango_version}"
+        compile "org.eclipse.jetty:jetty-websocket:${project.jetty_version}"
+        compile 'javax.servlet:sip-api:1.1'
+        compile "org.apache.mina:mina-core:${project.mina_version}"
+        compile "org.apache.mina:mina-filter-compression:${project.mina_version}"
+        compile "org.apache.mina:mina-integration-jmx:${project.mina_version}"
+        compile "org.apache.mina:mina-integration-ognl:${project.mina_version}"
+        compile "org.apache.mina:mina-integration-xbean:${project.mina_version}"
+        compile "org.apache.mina:mina-integration-beans:${project.mina_version}"
+        compile "org.apache.mina:mina-transport-apr:${project.mina_version}"
+        compile "org.apache.mina:mina-transport-serial:${project.mina_version}"
+        compile "org.apache.mina:mina-statemachine:${project.mina_version}"
+    }
+ 
+ 
+	test {
+		systemProperties 'MODE': 'ACTIVE'
+		//systemProperties 'MODE': 'STANDBY'
+	}
+
+	uploadArchives {
+		repositories.mavenDeployer {
+        	configuration = configurations.deployerJars
+            repository(url: "${project.ftp_url}"){
+	            authentication(userName: "${project.ftp_user}", password: "${project.ftp_passwd}")
+	        }
+            pom.groupId = "${project.group}"
+        	pom.artifactId = "${project.artifactId}"
+        	pom.version = "${project.version}"
+        }
+	}
+	
+	install {
+	    repositories.mavenInstaller {
+	      	pom.groupId = "${project.group}"
+        	pom.artifactId = "${project.artifactId}"
+        	pom.version = "${project.version}"
+        	pom.packaging = "${project.packaging}"
+	    }
+	}
+	
+	jettyEclipse {
+		httpPort  = 82
+		stopKey   = 'jetty-stop'
+		stopPort  = 8081
+	}
+	
+	war{
+	    classpath=classpath + sourceSets.test.output
+		archiveName = 'jrouter.war'
+	}
