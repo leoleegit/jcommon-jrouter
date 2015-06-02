@@ -6,7 +6,8 @@ public enum PacketType {
 	SET,
 	GET,
 	ERROR,
-	AUTO;
+	AUTO,
+	EVENT;
 	
 	public String toString(){
 		return super.toString().toLowerCase();
