@@ -62,7 +62,7 @@ public class WebSocketConnection extends AbstractRouterConnection implements Web
 		// TODO Auto-generated method stub
 		if(_connection != null){
 			//LOG.info(packet);
-			_connection.sendMessage(packet.toString());
+			_connection.sendMessage(packet.toPacketString());
 		}
 	}
 

@@ -55,4 +55,10 @@ public class DefaultPacket implements Packet{
 		this.res_code = res_code;
 	}
 
+	@Override
+	public String toPacketString() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 }

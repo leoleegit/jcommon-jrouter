@@ -61,7 +61,7 @@ public class SocketIoConnection extends AbstractRouterConnection  implements Soc
 	public void process(Packet request) throws IOException {
 		// TODO Auto-generated method stub
 		if(_connection != null)
-			_connection.sendMessage(request.toString());
+			_connection.sendMessage(request.toPacketString());
 	}
 
 	@Override

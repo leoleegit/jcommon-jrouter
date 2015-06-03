@@ -1,14 +1,14 @@
     apply plugin: 'java'
     apply plugin: 'eclipse'
 	apply plugin: 'maven'
-	apply plugin: 'war'
+	//apply plugin: 'war'
 	   
 	group   = 'jcommon'
-    version = '1.0-v20150416'
+    version = '1.0-v20150603'
     
     ext{
 		artifactId = 'jcommon-jrouter'
-		packaging  = 'war'
+		packaging  = 'jar'
 		ftp_url    = 'ftp://192.168.2.49'
 		ftp_user   = 'deploy'
 		ftp_passwd = 'deploy.com'
@@ -26,7 +26,7 @@
 	        classpath (group: 'com.sahlbach.gradle', name: 'gradle-jetty-eclipse-plugin', version: '1.9.+')
 	    }
 	}
-	apply plugin: 'jettyEclipse'
+	//apply plugin: 'jettyEclipse'
 	
 	configurations {
 	    deployerJars
@@ -97,13 +97,13 @@
 	    }
 	}
 	
-	jettyEclipse {
-		httpPort  = 82
-		stopKey   = 'jetty-stop'
-		stopPort  = 8081
-	}
+	//jettyEclipse {
+	//	httpPort  = 82
+	//	stopKey   = 'jetty-stop'
+	//	stopPort  = 8081
+	//}
 	
-	war{
-	    classpath=classpath + sourceSets.test.output
-		archiveName = 'jrouter.war'
-	}
+	//war{
+	//    classpath=classpath + sourceSets.test.output
+	//	archiveName = 'jrouter.war'
+	//}

@@ -60,7 +60,7 @@ public abstract class JsonPacket extends JsonObject implements Packet{
 		return false;
 	}
 	
-	public String toString(){
+	public String toPacketString(){
 		return toJson();
 	}
 	
