@@ -34,7 +34,7 @@ public class SocketIoConnectorStandalone extends AbstractRouterConnector{
     public static SocketIoConnectorStandalone instance(){return instance;}
     
     public RouterConnection addConnection(HttpServletRequest request){
-		return new SocketIoConnection(this, request);
+    	return super.addConnection(new SocketIoConnection(this, request));
 	}
 
     public void startup(String host, int port){

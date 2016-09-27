@@ -64,7 +64,7 @@ public class WebSocketConnector extends AbstractRouterConnector implements LifeC
 	@Override
 	public RouterConnection addConnection(HttpServletRequest request) {
 		// TODO Auto-generated method stub
-		return new WebSocketConnection(this, request);
+		return super.addConnection(new WebSocketConnection(this, request));
 	}
 
 	@Override

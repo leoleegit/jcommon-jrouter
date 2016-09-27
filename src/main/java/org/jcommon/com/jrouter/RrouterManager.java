@@ -11,7 +11,8 @@ public class RrouterManager {
 	private static RrouterManager instance;
 	public  static ExecutorService pool = Executors.newCachedThreadPool(); 
 	private List<RouterConnector> connectors = new ArrayList<RouterConnector>();
-	private PacketFactory facetory;
+	private PacketFactory factory;
+	private SocketKeepAliveFactory alive_factory;
 	
 	public static RrouterManager instance(){
 		if(instance==null){
@@ -21,14 +22,14 @@ public class RrouterManager {
 	}
 	
 	public PacketFactory getPacketFactory(){
-		if(facetory==null){
-			facetory  = new DefaultPacketFactory();
+		if(factory==null){
+			factory  = new DefaultPacketFactory();
 		}
-		return facetory;
+		return factory;
 	}
 	
-	public void setPacketFacetory(PacketFactory facetory){
-		this.facetory = facetory;
+	public void setPacketFactory(PacketFactory factory){
+		this.factory = factory;
 	}
 	
 	public static void  setThreadPool(ExecutorService pool){
@@ -48,5 +49,15 @@ public class RrouterManager {
 
 	public List<RouterConnector> getConnectors() {
 		return connectors;
+	}
+
+	public void setAlive_factory(SocketKeepAliveFactory alive_factory) {
+		this.alive_factory = alive_factory;
+	}
+
+	public SocketKeepAliveFactory getAlive_factory() {
+		if(alive_factory==null)
+			alive_factory = new SocketKeepAliveFactory();
+		return alive_factory;
 	}
 }

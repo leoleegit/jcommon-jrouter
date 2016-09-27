@@ -29,7 +29,7 @@ import org.jcommon.com.jrouter.utils.SocketState;
 
 public abstract class AbstractRouterConnection implements RouterConnection {
 	protected static final Logger LOG = Logger.getLogger(AbstractRouterConnection.class);
-	
+	protected static final String RESOURCE = "resource";
 	private String connection_id;
 	private LinkedList<String> packet_cache = new LinkedList<String>(){
 		private static final long serialVersionUID = 1L;
@@ -80,6 +80,10 @@ public abstract class AbstractRouterConnection implements RouterConnection {
 		return state == SocketState.CLOSED;
 	}
 	
+	public boolean isClosing(){
+		return state == SocketState.CLOSING;
+	}
+	
 	public void onRouterStr(String str){
 		if(RrouterManager.instance().getPacketFactory()!=null){
 			Packet packet = RrouterManager.instance().getPacketFactory().generatePacket(str);
@@ -100,14 +104,14 @@ public abstract class AbstractRouterConnection implements RouterConnection {
 			_keepalive.setRun(false);
 		_keepalive = null;
 		
-		RouterTask task = new RouterTask(ConnectionTask.onClose);
-		task.setReason(reason, string);
+		LOG.info(RouterUtils.key(_remoteAddr,_remotePort)+"-->"+reason+ " leave ...");
+		RouterTask task = new RouterTask(ConnectionTask.onClose, reason, string);
 		RrouterManager.pool.execute(task);
 		
 		if(packet_cache!=null){
 			packet_cache.clear();
 		}
-		LOG.info(RouterUtils.key(_remoteAddr,_remotePort)+" leave ...");
+		
 	}
 	
 	public void onRouterPacket(Packet packet){
@@ -115,21 +119,28 @@ public abstract class AbstractRouterConnection implements RouterConnection {
 			LOG.warn("packet is null");
 			return;
 		}
+		if(isDisconnected())
+			return;
 		if(RrouterManager.instance().getPacketFactory()!=null){
 			try {
-				this.process(RrouterManager.instance().getPacketFactory().generateResPacket(packet,200));
+				Packet resp = RrouterManager.instance().getPacketFactory().generateResPacket(packet,200);
+				if(resp!=null)
+					this.process(resp);
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				LOG.error("", e);
 			}
 		}
 		if(packet.isKeepAlive()){
-			if(_keepalive==null){
-				_keepalive = new SocketKeepAlive(this);
-				_keepalive.setRun(true);
-				RrouterManager.pool.execute(_keepalive);
-			}
-			_keepalive.updateAliveTime();
+			getSocketKeepAlive().updateAliveTime();
+			Packet alive_resp = getSocketKeepAlive().response(packet);
+			if(alive_resp!=null)
+				try {
+					process(alive_resp);
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					LOG.error("", e);
+				}
 			return;
 		}
 		
@@ -141,6 +152,17 @@ public abstract class AbstractRouterConnection implements RouterConnection {
 			}
 		}
 		RrouterManager.pool.execute(new RouterTask(packet, ConnectionTask.onPacket));
+	}
+	
+	protected SocketKeepAlive getSocketKeepAlive(){
+		if(isDisconnected())
+			return null;
+		if(_keepalive==null){
+			_keepalive = RrouterManager.instance().getAlive_factory().createSocketKeepAlive(this);
+			_keepalive.setRun(true);
+			RrouterManager.pool.execute(_keepalive);
+		}
+		return _keepalive;
 	}
 	
 	@Override
@@ -225,12 +247,7 @@ public abstract class AbstractRouterConnection implements RouterConnection {
     	}
     	
     	public RouterTask(ConnectionTask task,DisConnectReason reason, String str){
-    		this.task       = task;
-    		this.reason = reason;
-    		this.str    = str;
-    	}
-    	
-    	public void setReason(DisConnectReason reason, String str){
+    		this.task   = task;
     		this.reason = reason;
     		this.str    = str;
     	}
@@ -240,8 +257,13 @@ public abstract class AbstractRouterConnection implements RouterConnection {
     		try 
     		{
     			if(task!=null){
-    				for(Object o : listeners){
-        				RouterConnectionListener l = (RouterConnectionListener) o;
+    				List<RouterConnectionListener> ls = null;
+    				if(task == ConnectionTask.onClose){
+    					ls = new ArrayList<RouterConnectionListener>();
+    					ls.addAll(listeners);
+    				}else
+    					ls = listeners;
+    				for(RouterConnectionListener l : ls){
         				switch(task){
         					case onPacket : 
         						l.OnWebsocketPacket(AbstractRouterConnection.this, packet);

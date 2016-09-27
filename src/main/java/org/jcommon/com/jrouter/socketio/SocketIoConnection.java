@@ -23,6 +23,7 @@ import org.jcommon.com.jrouter.RrouterManager;
 import org.jcommon.com.jrouter.packet.Packet;
 import org.jcommon.com.jrouter.utils.ConnectionTask;
 import org.jcommon.com.jrouter.utils.DisConnectReason;
+import org.jcommon.com.jrouter.utils.RouterUtils;
 import org.jcommon.com.jrouter.utils.SocketState;
 
 import com.glines.socketio.common.ConnectionState;
@@ -43,6 +44,7 @@ public class SocketIoConnection extends AbstractRouterConnection  implements Soc
 			_localPort = request.getLocalPort();
 			_remoteAddr = InetAddress.getByName(request.getRemoteAddr());
 			_remotePort = request.getRemotePort();
+			super.setAttribute(RESOURCE, request.getPathInfo());
 		}
 		catch (Exception e) 
 		{
@@ -51,17 +53,27 @@ public class SocketIoConnection extends AbstractRouterConnection  implements Soc
 	}
 
 	@Override
-	public void doClose(DisConnectReason reason,  String string) {
+	public void doClose(DisConnectReason reason,  String string) {	
 		// TODO Auto-generated method stub
-		super.onClose(reason, string);
+		if(isDisconnected() || isClosing())
+			return;
+		LOG.info(RouterUtils.key(_remoteAddr,_remotePort)+"-->"+reason+ ": "+string);
 		setState(SocketState.CLOSING);
+		if(_connection!=null){
+			_connection.disconnect();
+			_connection = null;
+		}
+		super.onClose(reason, string);
 	}
 
 	@Override
-	public void process(Packet request) throws IOException {
+	public void process(Packet packet) throws IOException {
 		// TODO Auto-generated method stub
-		if(_connection != null)
-			_connection.sendMessage(request.toPacketString());
+		if(_connection != null && packet!=null){
+			String msg = packet.toPacketString();
+			if(msg!=null)
+				_connection.sendMessage(msg);
+		}
 	}
 
 	@Override
@@ -75,9 +87,12 @@ public class SocketIoConnection extends AbstractRouterConnection  implements Soc
 	@Override
 	public void onDisconnect(DisconnectReason arg0, String arg1) {
 		// TODO Auto-generated method stub	
+		LOG.info(RouterUtils.key(_remoteAddr,_remotePort)+"-->"+arg0+ ": "+arg1);
 		String str      = arg1==null?"close connection":arg1;
-		super.onClose(DisConnectReason.CLOSED, str);
-		setState(SocketState.CLOSED);
+		DisConnectReason dr = com.glines.socketio.common.DisconnectReason.ERROR == arg0?
+				DisConnectReason.ERROR:DisConnectReason.CLOSED;
+		if(!isClosing())
+			super.onClose(dr, str);
 		if(_connection!=null && _connection.getConnectionState()==ConnectionState.CONNECTED){
 			_connection.disconnect();
 			_connection = null;

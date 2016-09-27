@@ -11,7 +11,7 @@ public class BaseJsonTest {
 
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
-		RrouterManager.instance().setPacketFacetory(new JsonPacketFactory());
+		RrouterManager.instance().setPacketFactory(new JsonPacketFactory());
 		Packet bj = new Res("rwerwerqwrer",200);
 		System.out.println(bj);
 		Ping ping = new Ping(null);

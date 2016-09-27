@@ -20,6 +20,6 @@ public class SocketIoConnector extends WebSocketConnector{
 	@Override
 	public RouterConnection addConnection(HttpServletRequest request) {
 		// TODO Auto-generated method stub
-		return new SocketIoConnection(this, request);
+		return super.addConnection(new SocketIoConnection(this, request));
 	}
 }

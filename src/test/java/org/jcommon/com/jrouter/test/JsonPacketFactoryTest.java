@@ -21,7 +21,7 @@ public class JsonPacketFactoryTest implements SystemListener {
 	@Override
 	public void startup() {
 		// TODO Auto-generated method stub
-		RrouterManager.instance().setPacketFacetory(new JsonPacketFactory());
+		RrouterManager.instance().setPacketFactory(new JsonPacketFactory());
 	}
 
 }

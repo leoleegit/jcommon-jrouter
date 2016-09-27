@@ -19,9 +19,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.jcommon.com.jrouter.utils.RouterUtils;
-import org.jcommon.com.util.system.SystemListener;
 
-public abstract class AbstractRouterConnector implements RouterConnector, SystemListener{
+public abstract class AbstractRouterConnector implements RouterConnector{
 	
 	public static final int WS_DEFAULT_PORT = 80;
 	public static final int WSS_DEFAULT_PORT = 443;
@@ -64,8 +63,9 @@ public abstract class AbstractRouterConnector implements RouterConnector, System
 			for(RouterConnectorListener l : listeners){
 				if(connection==null)
 					l.onStop();
-				else
+				else{
 					l.onOpen(connection);
+				}
 			}
 		}
 	}
@@ -94,25 +94,4 @@ public abstract class AbstractRouterConnector implements RouterConnector, System
 		// TODO Auto-generated method stub
 		return _localPort;
 	}
-	
-
-	@Override
-	public boolean isSynchronized() {
-		// TODO Auto-generated method stub
-		return false;
-	}
-	
-
-	@Override
-	public void shutdown() {
-		// TODO Auto-generated method stub
-		RrouterManager.instance().removeConnector(this);
-	}
-
-	@Override
-	public void startup() {
-		// TODO Auto-generated method stub
-		RrouterManager.instance().addConnector(this);
-	}
-
 }

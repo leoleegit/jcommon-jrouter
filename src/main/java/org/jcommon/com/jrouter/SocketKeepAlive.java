@@ -13,24 +13,30 @@
 package org.jcommon.com.jrouter;
 
 import org.apache.log4j.Logger;
+import org.jcommon.com.jrouter.packet.Packet;
 import org.jcommon.com.jrouter.utils.DisConnectReason;
 import org.jcommon.com.jrouter.utils.RouterUtils;
 
 public class SocketKeepAlive implements Runnable{
-	private static final Logger LOG = Logger.getLogger(SocketKeepAlive.class);
+	protected static final Logger LOG = Logger.getLogger(SocketKeepAlive.class);
 	
-	private long max_idle_time = 26000;
-	private long alive_time;
+	protected long max_idle_time = 26000;
+	protected long alive_time;
 	
-	private boolean run;
-	private RouterConnection _connection;
+	protected boolean run;
+	protected RouterConnection _connection;
 	
 	public SocketKeepAlive(RouterConnection _connection){
 		this._connection = _connection;
+		setRun(true);
 	}
 	
 	public void updateAliveTime(){
 		this.alive_time = System.currentTimeMillis();
+	}
+	
+	public Packet response(Packet keepalive_packet){
+		return null;
 	}
 	
 	public void setRun(boolean run) {

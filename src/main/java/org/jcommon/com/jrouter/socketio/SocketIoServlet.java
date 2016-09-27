@@ -37,6 +37,7 @@ public class SocketIoServlet extends SocketIOServlet{
 	
 	@Override
 	public void init() throws ServletException {
+		super.init();
 		if(_connector==null){
 			_connector = new SocketIoConnectorStandalone();
 			((SocketIoConnectorStandalone)_connector).startup("localhost", 0);
